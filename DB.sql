@@ -159,11 +159,11 @@ drop procedure POPULATE_GROUP;
 drop procedure POPULATE_APPOINTMENT;
 
 create or replace procedure POPULATE_SERVICE(no_services in number) as 
-idx number;
+i number;
 visit_analysis char(1);
 begin
   delete from Service;
-  idx :=0;
+  i :=0;
   loop
     IF DBMS_RANDOM.VALUE > 0.50
     THEN
@@ -173,109 +173,100 @@ begin
     END IF;
     
     INSERT INTO Service VALUES (Service_TY(
-      idx,                            --CODE
+      i,                              --CODE
       DBMS_RANDOM.STRING('A', 20),    --NAME
-      NULL,         --DESCRIPTION
-      DBMS_RANDOM.STRING('A', 5),    --SVCTY
-      (SELECT TRUNC(DBMS_RANDOM.VALUE(20, 999), 2) FROM DUAL),
-      visit_analysis
+      NULL,                           --DESCRIPTION
+      DBMS_RANDOM.STRING('A', 5),     --SERVICETYPE
+      (SELECT TRUNC(DBMS_RANDOM.VALUE(20, 999), 2) FROM DUAL), --COST
+      visit_analysis                  --VA
     ));
     
-  idx := idx + 1;
-  exit when idx = no_services;
+  i := i + 1;
+  exit when i = no_services;
   end loop;
 end;
 /
 --------------------------------------------------------------------------------------------------
 create or replace procedure POPULATE_PATIENT(no_patient in number) as
-idx number;
+i number;
 begin
   delete from Patient;
-  idx :=0;
+  i :=0;
   loop
     INSERT INTO Patient VALUES (Patient_TY(
-      
-      DBMS_RANDOM.STRING('A', 20),    --NAME
-      DBMS_RANDOM.STRING('A', 20),    --SURNAME
+      DBMS_RANDOM.STRING('A', 20),          --NAME
+      DBMS_RANDOM.STRING('A', 20),          --SURNAME
       (SELECT TRUNC(DBMS_RANDOM.VALUE(10, 99), 0) FROM DUAL), --AGE
-      DBMS_RANDOM.STRING('A', 16),    --taxcode
-      DBMS_RANDOM.STRING('A', 40),    --address
-     -- (SELECT TO_CHAR(TRUNC(DBMS_RANDOM.VALUE(1000000000, 9999999999))) FROM DUAL),   --TELNO
-      DBMS_RANDOM.STRING('A', 9),    --TELNO
-      idx,                            --ID
-      DBMS_RANDOM.STRING('A',5 ),    --TYPE
-      Appointment_NT()               --APPOINTMENT (NT)
-      ));
-    
-    idx := idx + 1;
-  exit when idx = no_patient;
+      DBMS_RANDOM.STRING('A', 16),          --TAXCODE
+      DBMS_RANDOM.STRING('A', 20),          --ADDRESS
+      (SELECT TO_CHAR(TRUNC(DBMS_RANDOM.VALUE(1000000000, 9999999999))) FROM DUAL),   --TELEPHONE_NO
+      i,                                    --ID
+      DBMS_RANDOM.STRING('A',5),            --TYPE
+      Appointment_NT()                      --APPOINTMENTS
+    ));
+    i := i + 1;
+  exit when i = no_patient;
   end loop;
 end;
 /
 --------------------------------------------------------------------------------------------------
-create or replace procedure POPULATE_ASSISTANT(no_customers in number) as 
-idx number;
-
+create or replace procedure POPULATE_ASSISTANT(no_assistant in number) as 
+i number;
 begin
   delete from Assistant;
-  idx :=0;
+  i :=0;
   loop
-    INSERT INTO Assistant
-    VALUES (Assistant_TY(
-      DBMS_RANDOM.STRING('A', 30),    --NAME
-      DBMS_RANDOM.STRING('A', 30),    --SURNAME
+    INSERT INTO Assistant VALUES (Assistant_TY(
+      DBMS_RANDOM.STRING('A', 20),         --NAME
+      DBMS_RANDOM.STRING('A', 20),         --SURNAME
       (SELECT TRUNC(DBMS_RANDOM.VALUE(10, 99), 2) FROM DUAL), --AGE
-      DBMS_RANDOM.STRING('A', 16),    --TAXCODE
-      DBMS_RANDOM.STRING('A', 30),    --ADDRESS
-      (SELECT TO_CHAR(TRUNC(DBMS_RANDOM.VALUE(1000000000, 9999999999))) FROM DUAL),   --TELNO
-      Appointment_NT(),                             --APPOINTMENTS
-      idx,                              --ID
-      DBMS_RANDOM.STRING('A', 10),      --LEVELSPEC
+      DBMS_RANDOM.STRING('A', 16),         --TAXCODE
+      DBMS_RANDOM.STRING('A', 20),         --ADDRESS
+      (SELECT TO_CHAR(TRUNC(DBMS_RANDOM.VALUE(1000000000, 9999999999))) FROM DUAL),   --TELEPHONE_NO
+      Appointment_NT(),                    --APPOINTMENTS
+      i,                                   --ID
+      DBMS_RANDOM.STRING('A', 10),         --LEVELSPEC
       (SELECT TRUNC(DBMS_RANDOM.VALUE(10, 4000), 2) FROM DUAL)  --SALARY
     ));
-  idx := idx + 1;
-  exit when idx = no_customers;
+  i := i + 1;
+  exit when i = no_assistant;
   end loop;
 end;
 /
 --------------------------------------------------------------------------------------------------
-create or replace procedure POPULATE_DOCTOR(no_customers in number) as 
-idx number;
-
+create or replace procedure POPULATE_DOCTOR(no_doctor in number) as 
+i number;
 begin
   delete from Doctor;
-  idx :=0; 
+  i :=0; 
   loop
-    INSERT INTO Doctor
-    VALUES (Doctor_TY(
-      DBMS_RANDOM.STRING('A', 30),    --NAME
-      DBMS_RANDOM.STRING('A', 30),    --SURNAME
+    INSERT INTO Doctor VALUES (Doctor_TY(
+      DBMS_RANDOM.STRING('A', 20),        --NAME
+      DBMS_RANDOM.STRING('A', 20),        --SURNAME
       (SELECT TRUNC(DBMS_RANDOM.VALUE(10, 99), 2) FROM DUAL), --AGE
-      DBMS_RANDOM.STRING('A', 16),    --TAXCODE
-      DBMS_RANDOM.STRING('A', 30),    --ADDRESS
-      (SELECT TO_CHAR(TRUNC(DBMS_RANDOM.VALUE(1000000000, 9999999999))) FROM DUAL),   --TELNO
-      Appointment_NT(),                             --APPOINTMENTS
-      
-      idx,                              --ID
-      DBMS_RANDOM.STRING('A', 10),      --SPEC
-      null                              --WEEKLY AVAILABILITY
+      DBMS_RANDOM.STRING('A', 16),        --TAXCODE
+      DBMS_RANDOM.STRING('A', 20),        --ADDRESS
+      (SELECT TO_CHAR(TRUNC(DBMS_RANDOM.VALUE(1000000000, 9999999999))) FROM DUAL),   --TELEPHONE_NO
+      Appointment_NT(),                   --APPOINTMENTS
+      i,                                  --ID
+      DBMS_RANDOM.STRING('A', 10),        --SPEC
+      null                                --WEEKLY AVAILABILITY
     ));
-  idx := idx + 1;
-  exit when idx = no_customers;
+  i := i + 1;
+  exit when i = no_doctor;
   end loop;
 end;
 /
 
 ---------------------------------------------------------------------------------------------------
-
-create or replace procedure POPULATE_HABILITATION(n in number) as
+create or replace procedure POPULATE_HABILITATION(no_habilitation in number) as
 i number;
 begin
   i := 0;
   loop
    IF DBMS_RANDOM.VALUE > 0.40
     THEN
-      insert into Habilitation values ( Habilitation_TY(
+      insert into Habilitation values (Habilitation_TY(
       (SELECT * FROM (SELECT REF(E) FROM Doctor E ORDER BY dbms_random.value) WHERE rownum < 2),
       (SELECT * FROM (SELECT REF(S) FROM Service S ORDER BY dbms_random.value) WHERE rownum < 2)
       ));
@@ -286,78 +277,70 @@ begin
       )); 
    END IF;
    i:= i + 1;
-  exit when i = n;
+  exit when i = no_habilitation;
   end loop;
 end;
 /
 
 --------------------------------------------------------------------------------------------------
-create or replace procedure POPULATE_GROUP(no_customers in number) as 
-idx number;
-
+create or replace procedure POPULATE_GROUP(no_groups in number) as 
+i number;
 begin
   delete from GroupT;
-  idx :=0;
+  i :=0;
   loop
-    INSERT INTO GroupT VALUES (Group_TY(
-      idx                            --ID
-    ));
-  idx := idx + 1;
-  exit when idx = no_customers;
+    INSERT INTO GroupT VALUES (Group_TY(i) );   --ID
+  i := i + 1;
+  exit when i = no_groups;
   end loop;
 end;
 /
 ------------------------------------------------------------------------------------------
-create or replace procedure POPULATE_APPOINTMENT(n in number) as
+create or replace procedure POPULATE_APPOINTMENT(no_appointment in number) as
 i number;
-g ref Group_TY;
-s ref Service_TY;
+pat ref Patient_TY;
 ass ref Assistant_TY;
-app Appointment_TY;
-cus ref Patient_TY;
 doc ref Doctor_TY;
-
 begin
   delete from Appointment;
   i := 0;
   loop
    insert into Appointment values(Appointment_TY(
-      i,
-      (SELECT TO_DATE( TRUNC( DBMS_RANDOM.VALUE(TO_CHAR(DATE '2000-01-01','J') ,TO_CHAR(DATE '2030-12-31','J') ) ),'J' ) FROM DUAL),    --planneddatetime
-      (SELECT TO_DATE( TRUNC( DBMS_RANDOM.VALUE(TO_CHAR(DATE '2000-01-01','J') ,TO_CHAR(DATE '2030-12-31','J') ) ),'J' ) FROM DUAL),   --actualdatetime
-      (select dbms_random.string('A', 5) from dual),                                                    --outcome
-      (select trunc(dbms_random.value(0, 5000), 2) from dual),                                          --price
-      (SELECT * FROM (SELECT REF(Gr) FROM Groupt Gr ORDER BY dbms_random.value) WHERE rownum < 2),      --groupapp
-      (SELECT * FROM (SELECT REF(Se) FROM Service Se ORDER BY dbms_random.value) WHERE rownum < 2)      --service
+      i,                                                                                                                              --ID
+      (SELECT TO_DATE( TRUNC( DBMS_RANDOM.VALUE(TO_CHAR(DATE '2000-01-01','J') ,TO_CHAR(DATE '2020-12-31','J') ) ),'J' ) FROM DUAL),  --PLANNEDATETIME
+      (SELECT TO_DATE( TRUNC( DBMS_RANDOM.VALUE(TO_CHAR(DATE '2000-01-01','J') ,TO_CHAR(DATE '2020-12-31','J') ) ),'J' ) FROM DUAL),  --ACTUALDATETIME
+      (select dbms_random.string('A', 10) from dual),                                                   --OUTCOME
+      (select trunc(dbms_random.value(0, 5000), 2) from dual),                                          --PRICE
+      (SELECT * FROM (SELECT REF(Gr) FROM Groupt Gr ORDER BY dbms_random.value) WHERE rownum < 2),      --GROUPAPP
+      (SELECT * FROM (SELECT REF(Se) FROM Service Se ORDER BY dbms_random.value) WHERE rownum < 2)      --SERVICE
     ));
-    
-    SELECT * into ass FROM (SELECT REF(S) FROM Assistant S ORDER BY dbms_random.value) WHERE rownum < 2;                       --customer
-    SELECT * into cus FROM (SELECT REF(S) FROM Patient S ORDER BY dbms_random.value) WHERE rownum < 2;                         --assistant
-    SELECT * into doc FROM (SELECT REF(S) FROM Doctor S ORDER BY dbms_random.value) WHERE rownum < 2;                          --doctor
-    
+    --ADDING APPOINTMENTS TO PATIENT
+    SELECT * into pat FROM (SELECT REF(P) FROM Patient P ORDER BY dbms_random.value) WHERE rownum < 2;         --PATIENT
     insert into table(
       select appointments
       from Patient P
-      where ref(P) = cus
-    )
-    select ref(Ap) from Appointment Ap where Ap.ID = i;
+      where ref(P) = pat
+    ) select ref(Ap) from Appointment Ap where Ap.ID = i;
     
-    insert into table(
-      select appointments
-      from Assistant P
-      where ref(P) = ass
-    )
-    select ref(Ap) from Appointment Ap where Ap.ID = i;
-    
-    insert into table(
-      select appointments
-      from Doctor P
-      where ref(P) = doc
-    )
-    select ref(Ap) from Appointment Ap where Ap.ID = i;
-    
+    --ADDING APPOINTMENTS TO ASSISTANT/DOCTOR
+    SELECT * into ass FROM (SELECT REF(A) FROM Assistant A ORDER BY dbms_random.value) WHERE rownum < 2;       --ASSISTANT
+    SELECT * into doc FROM (SELECT REF(D) FROM Doctor D ORDER BY dbms_random.value) WHERE rownum < 2;          --DOCTOR
+    IF DBMS_RANDOM.VALUE > 0.50
+    THEN
+      insert into table(
+        select appointments
+        from Assistant A
+        where ref(A) = ass
+      ) select ref(Ap) from Appointment Ap where Ap.ID = i;
+    ELSE
+      insert into table(
+        select appointments
+        from Doctor D
+        where ref(D) = doc
+      ) select ref(Ap) from Appointment Ap where Ap.ID = i;
+    END IF;
     i:= i + 1;
-  exit when i = n;
+  exit when i = no_appointment;
   end loop;
 end;
 /
@@ -382,8 +365,7 @@ create or replace procedure INSERT_APPOINTMENT(ServiceID number, PatientID numbe
   price NUMBER(5, 2); 
   begin
     select max(ID) into i from appointment;    --SELECT NEXT ID FOR APPOINTMENT
-    select ref(S), S.cost into ser, price from service S 
-    where S.code = ServiceID;  --REQUESTED SERVICE
+    select ref(S), S.cost into ser, price from service S where S.code = ServiceID;  --REQUESTED SERVICE
     SELECT ref(Gr) into gro FROM Groupt Gr where Gr.ID = GroupNO;
     
     insert into appointment values (Appointment_TY(
@@ -399,141 +381,126 @@ end;
 
 --------------------------------------------------------------------------------------------
 -- 2) Op2: View information related to a patient, including the analysis results and previous visits (250 times a day)
-create or replace procedure PRINT_PATIENT (patient_id in number) as
-name varchar(30);
-surname varchar(30);
-age NUMBER;
-service Service_TY;
-appointment Appointment_TY;
-appointments Appointment_NT;
-
-begin
-  select P.surname, P.name, P.age, P.appointments into surname, name, age, appointments
-  from Patient P
-  where P.ID = patient_id;
-
-  dbms_output.put_line('Appointments of patient n: '|| patient_id);
-  dbms_output.put_line(surname ||' '|| name ||' '|| age);
-
-  for curs_appointment in (
-    select * from table(appointments)
-  ) loop
-    select deref(curs_appointment.column_value) into appointment from dual;
-    select deref(appointment.service) into service from dual;
-    dbms_output.put_line('Patient ID: '|| patient_id || '  Outcome: '|| appointment.outcome || '  Price: '|| appointment.price || '  Booked: '|| appointment.plannedatetime || '  Actual: '|| appointment.actualdatetime);
-    dbms_output.put_line('ServiceDescription: '|| service.description ||'   ServiceName: '|| service.name);
-    dbms_output.new_line();
-  end loop;
+create or replace procedure PRINT_PATIENT (PatientID in number) as
+  name varchar(30); surname varchar(30); age NUMBER;
+  service Service_TY;
+  appointment Appointment_TY;
+  appointments Appointment_NT;
+  begin
+    select P.surname, P.name, P.age, P.appointments into surname, name, age, appointments
+    from Patient P where P.ID = PatientID;
+    dbms_output.put_line('Patient n: '|| PatientID);
+    dbms_output.put_line('Surname: ' || surname ||'  Name: '|| name ||'   Age: '|| age);
+    for curs_appointment in (
+      select * from table(appointments)
+    ) loop
+      select deref(curs_appointment.column_value) into appointment from dual;
+      dbms_output.put_line('App. ID: '|| appointment.ID || '  Outcome: '|| appointment.outcome);
+      select deref(appointment.service) into service from dual;
+      dbms_output.put_line('Service Name: '|| service.name || 'Service Description: '|| service.description || '  Type(Analysis/Visit): '|| service.VA);
+      dbms_output.new_line();
+    end loop;
 end;
 /
 
 --------------------------------------------------------------------------------------------
 --3) Op3: Print information on the services to be provided today (100 times a day)
 create or replace procedure PRINT_SERVICE as
-service Service_TY;
-appointment Appointment_TY;
-begin 
-  for curs_appointment in (
-    select * from appointment ap
-    where extract(day from cast(ap.actualdatetime as date)) = extract(day from cast(current_timestamp as date))
-    )
-  loop
-    select deref(curs_appointment.service) into service from dual;
-     dbms_output.put_line('ServiceName: '|| service.name);
-    dbms_output.put_line( '  VA: '|| service.VA || '  Cost: ' || service.cost || '  Description: '|| service.description || '  Type: '|| service.servicetype);
-  end loop;
+  service Service_TY;
+  begin 
+    for curs_appointment in (
+      select * from appointment ap
+      where extract(day from cast(ap.actualdatetime as date)) = extract(day from cast(current_timestamp as date))
+      )
+    loop
+      select deref(curs_appointment.service) into service from dual;
+      dbms_output.put_line('Service #: ' || service.code || '       Name: '|| service.name);
+      dbms_output.put_line( 'Visit/Analysis: '|| service.VA || '  Cost: ' || service.cost || '  Type: '|| service.servicetype || '  Description: '|| service.description);
+    end loop;
 end;
 /
 
 -------------------------------------------------------------------------------------------------
 --4) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
 create or replace procedure PRINT_DOCTOR as
-appointment_count integer;
-begin
-  for cursor_doctor in (
-    select * from Doctor
-  ) loop
-     DBMS_OUTPUT.PUT_LINE('Doctor:  Name:' || cursor_doctor.name || '  Surname:' || cursor_doctor.surname);
-     DBMS_OUTPUT.PUT_LINE( 'Age: ' || cursor_doctor.age || '  Specialization: ' || cursor_doctor.specialization );
-     select count(*) into appointment_count from table(cursor_doctor.appointments);
-     DBMS_OUTPUT.PUT_LINE('Number appointments: ' || appointment_count);
-     DBMS_OUTPUT.PUT_LINE('');
+  no_appointment integer;
+  begin
+    for cursor_doctor in (
+      select * from Doctor
+    ) loop
+       dbms_output.put_line('Doctor: ' || '  Surname:' || cursor_doctor.surname || '   Name:' || cursor_doctor.name);
+       dbms_output.put_line('Age: ' || cursor_doctor.age || '  Specialization: ' || cursor_doctor.specialization );
+       select count(*) into no_appointment from table(cursor_doctor.appointments);
+       dbms_output.put_line('--> # services provided: ' || no_appointment);
+       dbms_output.put_line('');
     end loop;
 end;
 /
 
 --4) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
 create or replace procedure PRINT_ASSISTANT as
-appointment_count integer;
-begin
-  for cursor_assistant in ( 
-    select * from Assistant
-   ) loop
-     DBMS_OUTPUT.PUT_LINE('Assistant:   Name:' || cursor_assistant.name || '  Surname:' || cursor_assistant.surname);
-     DBMS_OUTPUT.PUT_LINE('Age: ' || cursor_assistant.age || '  Level ' || cursor_assistant.levelspec ||' Salary: ' || cursor_assistant.salary );
-     select count(*) into appointment_count from table(cursor_assistant.appointments);
-     DBMS_OUTPUT.PUT_LINE('Number appointments: ' || appointment_count);
-     DBMS_OUTPUT.PUT_LINE('');
+  no_appointment integer;
+  begin
+    for cursor_assistant in ( 
+      select * from Assistant
+     ) loop
+       dbms_output.put_line('Assistant: ' || '  Surname:' || cursor_assistant.surname || '  Name:' || cursor_assistant.name);
+       dbms_output.put_line('Age: ' || cursor_assistant.age || '  LevelSpec ' || cursor_assistant.levelspec ||' Salary: ' || cursor_assistant.salary );
+       select count(*) into no_appointment from table(cursor_assistant.appointments);
+       dbms_output.put_line('--> # services provided: ' || no_appointment);
+       dbms_output.put_line('');
     end loop;
 end;
 /
 
 -------------------------------------------------------
 -- 5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
-create or replace procedure PRINT_APPONTMENT_TODAY_DOCTOR(doctor_id in number) as
-surname varchar(30);
-specialization varchar(30);
-service Service_TY;
-appointment Appointment_TY;
-appointments Appointment_NT;
-
-begin
-  select D.surname, D.appointments into surname, appointments
-  from Doctor D
-  where id = doctor_id;
-  dbms_output.put_line('Appointments of doctor #: '|| doctor_id || '  Surname:' || surname);
-
-  for curs_appointment in (
-    select * from table(appointments)
-  ) loop
-      select deref(curs_appointment.column_value) into appointment from dual;
-      --if cast(appointment.actualdatetime as date) = cast(current_timestamp as date)
-      --then 
-        dbms_output.put_line('Planned: '|| appointment.plannedatetime || '  Actual: '|| appointment.actualdatetime);
-        select deref(appointment.service) into service from dual;
-        dbms_output.put_line('Service --> Name: ' || service.name ||'  Type '|| service.servicetype || '  VA '|| service.VA);
-        dbms_output.put_line('');
-      --end if;
-  end loop;
+create or replace procedure PRINT_APPONTMENT_TODAY_DOCTOR(DoctorID in number) as
+  surname varchar(30);
+  service Service_TY;
+  appointment Appointment_TY;
+  appointments Appointment_NT;
+  begin
+    select D.surname, D.appointments into surname, appointments
+    from Doctor D where D.ID = DoctorID;
+    dbms_output.put_line('Appointments of doctor #: '|| DoctorID || '  Surname:' || surname);
+    for curs_appointment in (
+      select * from table(appointments)
+    ) loop
+        select deref(curs_appointment.column_value) into appointment from dual;
+        if cast(appointment.actualdatetime as date) = cast(current_timestamp as date)
+        then 
+          dbms_output.put_line('ID: '|| appointment.ID || '  Day Appointment: '|| appointment.actualdatetime);
+          select deref(appointment.service) into service from dual;
+          dbms_output.put_line('Service --> ID: ' || service.code || '  Name: ' || service.name || '  Visit/Analysis:  '|| service.VA || '  Type '|| service.servicetype);
+          dbms_output.put_line('');
+        end if;
+    end loop;
 end;
 /
 
 -- 5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
-create or replace procedure PRINT_APPONTMENT_TODAY_ASS(assistant_id in number) as
-surname varchar(30);
-specialization varchar(30);
-service Service_TY;
-appointment Appointment_TY;
-appointments Appointment_NT;
-
-begin
-  select A.surname, A.appointments into surname, appointments
-  from Assistant A
-  where id = assistant_id;
-  dbms_output.put_line('Appointments of assistant #: '|| assistant_id || '  Surname:' || surname);
-
-  for curs_appointment in (
-    select * from table(appointments)
-  ) loop
-      select deref(curs_appointment.column_value) into appointment from dual;
-      --if cast(appointment.actualdatetime as date) = cast(current_timestamp as date)
-      --then 
-        dbms_output.put_line('Planned: '|| appointment.plannedatetime || '  Actual: '|| appointment.actualdatetime);
-        select deref(appointment.service) into service from dual;
-        dbms_output.put_line('Service --> Name: ' || service.name ||'  Type '|| service.servicetype || '  VA '|| service.VA);
-        dbms_output.put_line('');
-      --end if;
-  end loop;
+create or replace procedure PRINT_APPONTMENT_TODAY_ASS(AssistantID in number) as
+  surname varchar(30);
+  service Service_TY;
+  appointment Appointment_TY;
+  appointments Appointment_NT;
+  begin
+    select A.surname, A.appointments into surname, appointments
+    from Assistant A where A.ID = AssistantID;
+    dbms_output.put_line('Appointments of assistant #: '|| AssistantID || '  Surname:' || surname);
+    for curs_appointment in (
+      select * from table(appointments)
+    ) loop
+        select deref(curs_appointment.column_value) into appointment from dual;
+        if cast(appointment.actualdatetime as date) = cast(current_timestamp as date)
+        then 
+          dbms_output.put_line('ID: '|| appointment.ID || '  Day Appointment: '|| appointment.actualdatetime);
+          select deref(appointment.service) into service from dual;
+          dbms_output.put_line('Service --> ID: ' || service.code || '  Name: ' || service.name || '  Visit/Analysis:  '|| service.VA || '  Type '|| service.servicetype);
+          dbms_output.put_line('');
+        end if;
+    end loop;
 end;
 /
 
@@ -559,41 +526,41 @@ select count(*) from appointment;
 --------------------------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------TRIGGER---------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
--- Constraint: we raise an exception if we insert an habilitation for an assistant to do a visit (visits can only be done by doctors)
+--1) Constraint: we raise an exception if we insert an habilitation for an assistant to do a visit (visits can only be done by doctors)
 create or replace trigger CHECK_HABILITATION
-before insert on Habilitation
-for each row
-declare
-  emp Employee_TY;
-  ser Service_TY;
-begin
-  select deref(:new.Employee) into emp from dual;
-  if (emp is of (Assistant_TY)) then
-    select deref(:new.Service) into ser from dual;
-    if ser.VA = 'v' then
-      raise_application_error('-20001', 'ERROR! AN ASSISTANT CANNOT PERFORM A VISIT!!');
+  before insert on Habilitation
+  for each row
+  declare
+    emp Employee_TY;
+    ser Service_TY;
+  begin
+    select deref(:new.Employee) into emp from dual;
+    if (emp is of (Assistant_TY)) then
+      select deref(:new.Service) into ser from dual;
+      if ser.VA = 'v' then
+        raise_application_error('-20001', 'ERROR! AN ASSISTANT CANNOT PERFORM A VISIT!!');
+      end if;
     end if;
-  end if;
 end;
 /
 
--- If the appointment is new, we automatically assign a group to it
+--2) If the appointment is new, we automatically assign a group to it
 create or replace trigger insertGroup
-BEFORE INSERT ON Appointment
-FOR EACH ROW
-  DECLARE
-    g Group_TY;
-    gref ref Group_TY;
-    gcode number;
-  BEGIN
-    if :NEW.ID is null then
-      select max(ID) into gcode from groupt;
-      g := Group_TY(gcode+1);
-      insert into groupt values (g);
-      select ref(gr) into gref 
-      from groupt gr where ID = gcode+1;
-      :NEW.groupapp := gref;
-    end if;
+  before insert on Appointment
+  for each row
+    declare
+      g Group_TY;
+      gref ref Group_TY;
+      gcode number;
+    begin
+      if :NEW.ID is null then
+        select max(ID) into gcode from groupt;
+        g := Group_TY(gcode+1);
+        insert into groupt values (g);
+        select ref(gr) into gref 
+        from groupt gr where ID = gcode+1;
+        :NEW.groupapp := gref;
+      end if;
 end;
 /
 
@@ -604,15 +571,13 @@ end;
 
 set serveroutput on
 
-
 exec INSERT_APPOINTMENT(6, 204, 34, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-exec PRINT_PATIENT(4);
+exec PRINT_PATIENT(1);
 exec PRINT_SERVICE;
 exec PRINT_DOCTOR;
 exec PRINT_ASSISTANT;
-
---exec PRINT_APPONTMENT_TODAY_DOCTOR(5);
---exec PRINT_APPONTMENT_TODAY_ASS(5);
+exec PRINT_APPONTMENT_TODAY_DOCTOR(5);
+exec PRINT_APPONTMENT_TODAY_ASS(5);
 
 --EXECUTION OF TRIGGER
 insert into Habilitation values( Habilitation_TY(
