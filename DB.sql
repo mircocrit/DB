@@ -373,6 +373,8 @@ drop procedure PRINT_ASSISTANT;
 drop procedure PRINT_APPONTMENT_TODAY_DOCTOR;
 drop procedure PRINT_APPONTMENT_TODAY_ASS;
 
+
+--1) Op1: Enter data for a new service (300 times a day)
 create or replace procedure INSERT_APPOINTMENT(ServiceID number, PatientID number, GroupNO number, actual timestamp, book timestamp) as
   i number;
   ser ref Service_TY;
@@ -396,6 +398,7 @@ end;
 /
 
 --------------------------------------------------------------------------------------------
+-- 2) Op2: View information related to a patient, including the analysis results and previous visits (250 times a day)
 create or replace procedure PRINT_PATIENT (patient_id in number) as
 name varchar(30);
 surname varchar(30);
@@ -425,6 +428,7 @@ end;
 /
 
 --------------------------------------------------------------------------------------------
+--3) Op3: Print information on the services to be provided today (100 times a day)
 create or replace procedure PRINT_SERVICE as
 service Service_TY;
 appointment Appointment_TY;
@@ -442,6 +446,7 @@ end;
 /
 
 -------------------------------------------------------------------------------------------------
+--4) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
 create or replace procedure PRINT_DOCTOR as
 appointment_count integer;
 begin
@@ -457,7 +462,7 @@ begin
 end;
 /
 
----------------------------------------------------------------------------------------------------------
+--4) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
 create or replace procedure PRINT_ASSISTANT as
 appointment_count integer;
 begin
@@ -474,6 +479,7 @@ end;
 /
 
 -------------------------------------------------------
+-- 5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
 create or replace procedure PRINT_APPONTMENT_TODAY_DOCTOR(doctor_id in number) as
 surname varchar(30);
 specialization varchar(30);
@@ -501,8 +507,8 @@ begin
   end loop;
 end;
 /
---------------------------------------------------------------------------------------------
 
+-- 5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
 create or replace procedure PRINT_APPONTMENT_TODAY_ASS(assistant_id in number) as
 surname varchar(30);
 specialization varchar(30);
@@ -553,6 +559,7 @@ select count(*) from appointment;
 --------------------------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------TRIGGER---------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+-- Constraint: we raise an exception if we insert an habilitation for an assistant to do a visit (visits can only be done by doctors)
 create or replace trigger CHECK_HABILITATION
 before insert on Habilitation
 for each row
@@ -570,6 +577,7 @@ begin
 end;
 /
 
+-- If the appointment is new, we automatically assign a group to it
 create or replace trigger insertGroup
 BEFORE INSERT ON Appointment
 FOR EACH ROW
