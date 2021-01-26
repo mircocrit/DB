@@ -113,8 +113,7 @@ CREATE TABLE Service OF Service_TY(
 
 CREATE TABLE Appointment OF Appointment_TY(
   ID PRIMARY KEY,
-  service NOT NULL,
-  groupapp NOT NULL
+  service NOT NULL
 );
 /
 
@@ -130,7 +129,7 @@ CREATE TABLE Patient OF Patient_TY(
 
 CREATE TABLE Doctor OF Doctor_TY(
   ID PRIMARY KEY
-) nested table WeeklyAvt store as WeeklyAvtDTab,
+) nested table WeeklyAvt store as WeeklyAvtDTab
   nested table appointments store as AppointmentDocTab;
 /
 
@@ -250,7 +249,7 @@ begin
       Appointment_NT(),                   --APPOINTMENTS
       i,                                  --ID
       DBMS_RANDOM.STRING('A', 10),        --SPEC
-      null                                --WEEKLY AVAILABILITY
+      WeeklyAvt_NT()                      --WEEKLY AVAILABILITY
     ));
   i := i + 1;
   exit when i = no_doctor;
@@ -258,6 +257,29 @@ begin
 end;
 /
 
+create or replace procedure POPULATE_WEEKLY_AVAILABILITY as
+  i number;
+  n number;
+  startime_ timestamp;
+  endtime_ timestamp;
+  begin
+    n := 10;
+    for doc in (select * from doctor) loop
+      i:=0;
+      loop
+        SELECT TO_DATE( TRUNC( DBMS_RANDOM.VALUE(TO_CHAR(DATE '2000-01-01','J') ,TO_CHAR(DATE '2020-12-31','J') ) ),'J' ) into startime_ FROM DUAL;
+        SELECT TO_DATE( TRUNC( DBMS_RANDOM.VALUE(TO_CHAR(DATE '2000-01-01','J') ,TO_CHAR(DATE '2020-12-31','J') ) ),'J' ) into endtime_ FROM DUAL;
+        insert into table(
+          select Weeklyavt
+          from Doctor D
+          where D.ID = doc.ID
+      ) values (AVAILABILITY_TY(trunc(i/2), startime_, endtime_));
+     i:=i+1;
+     exit when i = n;
+     end loop;
+   end loop;
+end;
+/
 ---------------------------------------------------------------------------------------------------
 create or replace procedure POPULATE_HABILITATION(no_habilitation in number) as
 i number;
@@ -515,12 +537,13 @@ exec POPULATE_ASSISTANT(40);
 select count(*) from assistant;
 exec POPULATE_DOCTOR(30);
 select count(*) from doctor;
+exec POPULATE_WEEKLY_AVAILABILITY;
 exec POPULATE_HABILITATION(210);
 select count(*) from habilitation;
 
-exec POPULATE_GROUP(2000);
+exec POPULATE_GROUP(7000);
 select count(*) from GroupT;
-exec POPULATE_APPOINTMENT(10000);
+exec POPULATE_APPOINTMENT(15000);
 select count(*) from appointment;
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -543,9 +566,15 @@ create or replace trigger CHECK_HABILITATION
     end if;
 end;
 /
-
+-----------------------------EXECUTION OF TRIGGER----------------------------------------------------
+insert into Habilitation values( Habilitation_TY(
+    (SELECT * FROM (SELECT REF(E) FROM Assistant E ORDER BY dbms_random.value) WHERE rownum < 2),
+    (SELECT * FROM (SELECT REF(S) FROM Service S ORDER BY dbms_random.value) WHERE rownum < 2)
+));
+/
+---------------------------------------------------------------------------------------------------------------------------------
 --2) If the appointment is new, we automatically assign a group to it
-create or replace trigger insertGroup
+create or replace trigger INSERT_GROUP
   before insert on Appointment
   for each row
     declare
@@ -553,17 +582,38 @@ create or replace trigger insertGroup
       gref ref Group_TY;
       gcode number;
     begin
-      if :NEW.ID is null then
+      if :NEW.groupapp is null then
         select max(ID) into gcode from groupt;
-        g := Group_TY(gcode+1);
+        dbms_output.put_line(gcode);
+        g := Group_TY(gcode + 1);
         insert into groupt values (g);
+        
         select ref(gr) into gref 
         from groupt gr where ID = gcode+1;
         :NEW.groupapp := gref;
+        dbms_output.put_line('Group added!');
       end if;
 end;
 /
+-----------------------------EXECUTION OF TRIGGER----------------------------------------------------
+insert into appointment values(21344, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 's', 324, null, (SELECT * FROM (SELECT REF(Se) FROM Service Se ORDER BY dbms_random.value) WHERE rownum < 2));
+select count(*) from groupT;
+select deref(groupapp) from appointment where id='21344';
+----------------------------------------------------------------------------------------------------------------
 
+--3) if the actual date updated goes under the planned date we return an error:
+create or replace trigger CHECK_APPOINTMENT_DATE
+before insert or update of actualdatetime on appointment
+for each row
+begin
+    if :new.actualdatetime < :new.plannedatetime
+    then
+      raise_application_error('-20099', 'ATTENTION!! YOU CANNOT ANTICIPATE THE ACTUAL APPOINTMENT DATE PREVIOUS TO THE BOOKED TIME!');
+    end if;
+end;
+/
+------------------------------EXECUTION OF TRIGGER----------------------------------------------------
+update appointment set actualdatetime = TIMESTAMP '1995-10-12 21:22:23' where ID='122'
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------EXECUTION------------------------------------------------------------------------------------------------------
@@ -579,9 +629,72 @@ exec PRINT_ASSISTANT;
 exec PRINT_APPONTMENT_TODAY_DOCTOR(5);
 exec PRINT_APPONTMENT_TODAY_ASS(5);
 
---EXECUTION OF TRIGGER
-insert into Habilitation values( Habilitation_TY(
-    (SELECT * FROM (SELECT REF(E) FROM Assistant E ORDER BY dbms_random.value) WHERE rownum < 2),
-    (SELECT * FROM (SELECT REF(S) FROM Service S ORDER BY dbms_random.value) WHERE rownum < 2)
-));
-/
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+--select * from doctor where weeklyavt = 1;
+
+--OPERATION 2:
+--2) View information related to a patient, including the analysis results and previous visits (250 times a day)
+select deref(value(app)).ID as ID, 
+    deref(value(app)).actualdatetime as actualdate, 
+    deref(value(app)).plannedatetime as plannedatetime, 
+    deref(value(app)).price as price,
+    deref(value(app)).outcome as outcome
+    from (table(
+        select appointments from Patient where taxcode = 'hlBexdfTbQIFECAZ')
+     ) app;
+
+create index txc on Patient(taxcode);
+drop index txc;
+------------------------------------------------------------------------------------------------------------------
+--OPERATION 3:
+--3) Op3: Print information on the services to be provided today (100 times a day)
+select * from appointment app 
+    where extract(day from cast(app.actualdatetime as date)) = extract(day from cast(current_timestamp as date)) and
+    extract(month from cast(app.actualdatetime as date)) = extract(month from cast(current_timestamp as date)) and
+    extract(year from cast(app.actualdatetime as date)) = extract(year from cast(current_timestamp as date));
+    
+create index timest on Appointment(actualdatetime);
+drop index timest;
+
+---------------------------------------------------------------------------------------------------------------------
+--OPERATION 4:
+--) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
+SELECT ID, taxcode, name, surname, age, telephone_no, specialization, NVL(CARDINALITY(d.appointments), 0) as n_appointments 
+FROM doctor d;
+
+SELECT ID, taxcode, name, surname, age, telephone_no,levelspec, salary, NVL(CARDINALITY(d.appointments), 0) as n_appointments 
+FROM assistant d;
+--------------------------------------------------------------------------------------------------------------------
+
+
+--5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
+select deref(value(app)).ID as ID, 
+     deref(value(app)).actualdatetime as actualdate, 
+     deref(value(app)).plannedatetime as bookdate,
+     deref(value(app)).price as price,
+     deref(value(app)).outcome as outcome
+     from (table(
+        select appointments from Doctor where taxcode='krEaQuhseYmKBQsM')
+        ) app
+     where extract(day from cast((deref(value(app))).actualdatetime as date)) = extract(day from cast(CURRENT_TIMESTAMP as date));
+
+select deref(value(app)).ID as ID, 
+     deref(value(app)).actualdatetime as actualdate, deref(value(app)).plannedatetime as bookdate,
+     deref(value(app)).price as price,
+     deref(value(app)).outcome as outcome
+     from (table(
+        select appointments from Assistant where taxcode='BdpTqJJslzEYRlDa')
+        ) app
+     where extract(day from cast((deref(value(app))).actualdatetime as date)) = extract(day from cast(CURRENT_TIMESTAMP as date));
+----------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
