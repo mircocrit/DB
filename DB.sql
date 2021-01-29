@@ -179,7 +179,6 @@ begin
       (SELECT TRUNC(DBMS_RANDOM.VALUE(20, 999), 2) FROM DUAL), --COST
       visit_analysis                  --VA
     ));
-    
   i := i + 1;
   exit when i = no_services;
   end loop;
@@ -273,8 +272,8 @@ create or replace procedure POPULATE_WEEKLY_AVAILABILITY as
           select Weeklyavt
           from Doctor D
           where D.ID = doc.ID
-      ) values (AVAILABILITY_TY(trunc(i/2), startime_, endtime_));
-     i:=i+1;
+      ) values (Availability_TY(trunc(i/2), startime_, endtime_));
+     i:= i + 1;
      exit when i = n;
      end loop;
    end loop;
@@ -289,13 +288,13 @@ begin
    IF DBMS_RANDOM.VALUE > 0.40
     THEN
       insert into Habilitation values (Habilitation_TY(
-      (SELECT * FROM (SELECT REF(E) FROM Doctor E ORDER BY dbms_random.value) WHERE rownum < 2),
-      (SELECT * FROM (SELECT REF(S) FROM Service S ORDER BY dbms_random.value) WHERE rownum < 2)
+      (SELECT * FROM (SELECT REF(E) FROM Doctor E ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2),
+      (SELECT * FROM (SELECT REF(S) FROM Service S ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2)
       ));
     ELSE
       insert into Habilitation values(Habilitation_TY(
-      (SELECT * FROM (SELECT REF(E) FROM Assistant E ORDER BY dbms_random.value) WHERE rownum < 2),
-      (SELECT * FROM (SELECT REF(S) FROM Service S ORDER BY dbms_random.value) WHERE rownum < 2)
+      (SELECT * FROM (SELECT REF(E) FROM Assistant E ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2),
+      (SELECT * FROM (SELECT REF(S) FROM Service S ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2)
       )); 
    END IF;
    i:= i + 1;
@@ -331,13 +330,13 @@ begin
       i,                                                                                                                              --ID
       (SELECT TO_DATE( TRUNC( DBMS_RANDOM.VALUE(TO_CHAR(DATE '2000-01-01','J') ,TO_CHAR(DATE '2020-12-31','J') ) ),'J' ) FROM DUAL),  --PLANNEDATETIME
       (SELECT TO_DATE( TRUNC( DBMS_RANDOM.VALUE(TO_CHAR(DATE '2000-01-01','J') ,TO_CHAR(DATE '2020-12-31','J') ) ),'J' ) FROM DUAL),  --ACTUALDATETIME
-      (select dbms_random.string('A', 10) from dual),                                                   --OUTCOME
-      (select trunc(dbms_random.value(0, 5000), 2) from dual),                                          --PRICE
-      (SELECT * FROM (SELECT REF(Gr) FROM Groupt Gr ORDER BY dbms_random.value) WHERE rownum < 2),      --GROUPAPP
-      (SELECT * FROM (SELECT REF(Se) FROM Service Se ORDER BY dbms_random.value) WHERE rownum < 2)      --SERVICE
+      (select DBMS_RANDOM.STRING('A', 10) from dual),                                                   --OUTCOME
+      (select trunc(DBMS_RANDOM.VALUE(0, 5000), 2) from dual),                                          --PRICE
+      (SELECT * FROM (SELECT REF(Gr) FROM Groupt Gr ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2),      --GROUPAPP
+      (SELECT * FROM (SELECT REF(Se) FROM Service Se ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2)      --SERVICE
     ));
     --ADDING APPOINTMENTS TO PATIENT
-    SELECT * into pat FROM (SELECT REF(P) FROM Patient P ORDER BY dbms_random.value) WHERE rownum < 2;         --PATIENT
+    SELECT * into pat FROM (SELECT REF(P) FROM Patient P ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2;         --PATIENT
     insert into table(
       select appointments
       from Patient P
@@ -345,8 +344,8 @@ begin
     ) select ref(Ap) from Appointment Ap where Ap.ID = i;
     
     --ADDING APPOINTMENTS TO ASSISTANT/DOCTOR
-    SELECT * into ass FROM (SELECT REF(A) FROM Assistant A ORDER BY dbms_random.value) WHERE rownum < 2;       --ASSISTANT
-    SELECT * into doc FROM (SELECT REF(D) FROM Doctor D ORDER BY dbms_random.value) WHERE rownum < 2;          --DOCTOR
+    SELECT * into ass FROM (SELECT REF(A) FROM Assistant A ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2;       --ASSISTANT
+    SELECT * into doc FROM (SELECT REF(D) FROM Doctor D ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2;          --DOCTOR
     IF DBMS_RANDOM.VALUE > 0.50
     THEN
       insert into table(
@@ -364,165 +363,6 @@ begin
     i:= i + 1;
   exit when i = no_appointment;
   end loop;
-end;
-/
-
----------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------QUERY PROCEDURES-----------------------------------------------------------------
----------------------------------------------------------------------------------------------------------------------------------------
-drop procedure INSERT_APPOINTMENT;
-drop procedure PRINT_PATIENT;
-drop procedure PRINT_SERVICE;
-drop procedure PRINT_DOCTOR;
-drop procedure PRINT_ASSISTANT;
-drop procedure PRINT_APPONTMENT_TODAY_DOCTOR;
-drop procedure PRINT_APPONTMENT_TODAY_ASS;
-
-
---1) Op1: Enter data for a new service (300 times a day)
-create or replace procedure INSERT_APPOINTMENT(ServiceID number, PatientID number, GroupNO number, actual timestamp, book timestamp) as
-  i number;
-  ser ref Service_TY;
-  gro ref Group_TY;
-  price NUMBER(5, 2); 
-  begin
-    select max(ID) into i from appointment;    --SELECT NEXT ID FOR APPOINTMENT
-    select ref(S), S.cost into ser, price from service S where S.code = ServiceID;  --REQUESTED SERVICE
-    SELECT ref(Gr) into gro FROM Groupt Gr where Gr.ID = GroupNO;
-    
-    insert into appointment values (Appointment_TY(
-         i+1, actual, book, (select dbms_random.string('A', 5) from dual) , price ,  gro ,  ser)
-    );
-    insert into table(
-      select appointments
-      from Patient P
-      where P.ID = PatientID
-    ) select ref(Ap) from Appointment Ap where Ap.ID = i+1;
-end;
-/
-
---------------------------------------------------------------------------------------------
--- 2) Op2: View information related to a patient, including the analysis results and previous visits (250 times a day)
-create or replace procedure PRINT_PATIENT (PatientID in number) as
-  name varchar(30); surname varchar(30); age NUMBER;
-  service Service_TY;
-  appointment Appointment_TY;
-  appointments Appointment_NT;
-  begin
-    select P.surname, P.name, P.age, P.appointments into surname, name, age, appointments
-    from Patient P where P.ID = PatientID;
-    dbms_output.put_line('Patient n: '|| PatientID);
-    dbms_output.put_line('Surname: ' || surname ||'  Name: '|| name ||'   Age: '|| age);
-    for curs_appointment in (
-      select * from table(appointments)
-    ) loop
-      select deref(curs_appointment.column_value) into appointment from dual;
-      dbms_output.put_line('App. ID: '|| appointment.ID || '  Outcome: '|| appointment.outcome);
-      select deref(appointment.service) into service from dual;
-      dbms_output.put_line('Service Name: '|| service.name || 'Service Description: '|| service.description || '  Type(Analysis/Visit): '|| service.VA);
-      dbms_output.new_line();
-    end loop;
-end;
-/
-
---------------------------------------------------------------------------------------------
---3) Op3: Print information on the services to be provided today (100 times a day)
-create or replace procedure PRINT_SERVICE as
-  service Service_TY;
-  begin 
-    for curs_appointment in (
-      select * from appointment ap
-      where extract(day from cast(ap.actualdatetime as date)) = extract(day from cast(current_timestamp as date))
-      )
-    loop
-      select deref(curs_appointment.service) into service from dual;
-      dbms_output.put_line('Service #: ' || service.code || '       Name: '|| service.name);
-      dbms_output.put_line( 'Visit/Analysis: '|| service.VA || '  Cost: ' || service.cost || '  Type: '|| service.servicetype || '  Description: '|| service.description);
-    end loop;
-end;
-/
-
--------------------------------------------------------------------------------------------------
---4) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
-create or replace procedure PRINT_DOCTOR as
-  no_appointment integer;
-  begin
-    for cursor_doctor in (
-      select * from Doctor
-    ) loop
-       dbms_output.put_line('Doctor: ' || '  Surname:' || cursor_doctor.surname || '   Name:' || cursor_doctor.name);
-       dbms_output.put_line('Age: ' || cursor_doctor.age || '  Specialization: ' || cursor_doctor.specialization );
-       select count(*) into no_appointment from table(cursor_doctor.appointments);
-       dbms_output.put_line('--> # services provided: ' || no_appointment);
-       dbms_output.put_line('');
-    end loop;
-end;
-/
-
---4) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
-create or replace procedure PRINT_ASSISTANT as
-  no_appointment integer;
-  begin
-    for cursor_assistant in ( 
-      select * from Assistant
-     ) loop
-       dbms_output.put_line('Assistant: ' || '  Surname:' || cursor_assistant.surname || '  Name:' || cursor_assistant.name);
-       dbms_output.put_line('Age: ' || cursor_assistant.age || '  LevelSpec ' || cursor_assistant.levelspec ||' Salary: ' || cursor_assistant.salary );
-       select count(*) into no_appointment from table(cursor_assistant.appointments);
-       dbms_output.put_line('--> # services provided: ' || no_appointment);
-       dbms_output.put_line('');
-    end loop;
-end;
-/
-
--------------------------------------------------------
--- 5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
-create or replace procedure PRINT_APPONTMENT_TODAY_DOCTOR(DoctorID in number) as
-  surname varchar(30);
-  service Service_TY;
-  appointment Appointment_TY;
-  appointments Appointment_NT;
-  begin
-    select D.surname, D.appointments into surname, appointments
-    from Doctor D where D.ID = DoctorID;
-    dbms_output.put_line('Appointments of doctor #: '|| DoctorID || '  Surname:' || surname);
-    for curs_appointment in (
-      select * from table(appointments)
-    ) loop
-        select deref(curs_appointment.column_value) into appointment from dual;
-        if cast(appointment.actualdatetime as date) = cast(current_timestamp as date)
-        then 
-          dbms_output.put_line('ID: '|| appointment.ID || '  Day Appointment: '|| appointment.actualdatetime);
-          select deref(appointment.service) into service from dual;
-          dbms_output.put_line('Service --> ID: ' || service.code || '  Name: ' || service.name || '  Visit/Analysis:  '|| service.VA || '  Type '|| service.servicetype);
-          dbms_output.put_line('');
-        end if;
-    end loop;
-end;
-/
-
--- 5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
-create or replace procedure PRINT_APPONTMENT_TODAY_ASS(AssistantID in number) as
-  surname varchar(30);
-  service Service_TY;
-  appointment Appointment_TY;
-  appointments Appointment_NT;
-  begin
-    select A.surname, A.appointments into surname, appointments
-    from Assistant A where A.ID = AssistantID;
-    dbms_output.put_line('Appointments of assistant #: '|| AssistantID || '  Surname:' || surname);
-    for curs_appointment in (
-      select * from table(appointments)
-    ) loop
-        select deref(curs_appointment.column_value) into appointment from dual;
-        if cast(appointment.actualdatetime as date) = cast(current_timestamp as date)
-        then 
-          dbms_output.put_line('ID: '|| appointment.ID || '  Day Appointment: '|| appointment.actualdatetime);
-          select deref(appointment.service) into service from dual;
-          dbms_output.put_line('Service --> ID: ' || service.code || '  Name: ' || service.name || '  Visit/Analysis:  '|| service.VA || '  Type '|| service.servicetype);
-          dbms_output.put_line('');
-        end if;
-    end loop;
 end;
 /
 
@@ -545,6 +385,227 @@ exec POPULATE_GROUP(7000);
 select count(*) from GroupT;
 exec POPULATE_APPOINTMENT(15000);
 select count(*) from appointment;
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------QUERY PROCEDURES-----------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------
+drop procedure INSERT_APPOINTMENT;
+drop procedure PRINT_PATIENT;
+drop procedure PRINT_SERVICE;
+drop procedure PRINT_DOCTOR;
+drop procedure PRINT_ASSISTANT;
+drop procedure PRINT_APPONTMENT_TODAY_DOCTOR;
+drop procedure PRINT_APPONTMENT_TODAY_ASS;
+
+
+--1) Op1: Enter data for a new service (300 times a day)
+create or replace procedure INSERT_APPOINTMENT_DOCTOR(ServiceName varchar, Ptaxcode varchar, Dtaxcode varchar, book varchar) as
+  i number;
+  begin
+    select max(ID) into i from appointment;
+    insert into appointment values ( Appointment_TY(
+         i + 1,
+         TO_TIMESTAMP(book, 'DD-MM-YYYY'), 
+         CURRENT_TIMESTAMP,
+         (select dbms_random.string('A', 5) from dual), 
+         (select S.cost from service S where S.name = ServiceName),  
+         (SELECT * FROM (SELECT REF(Gr) FROM Groupt Gr ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2) ,  
+         (select ref(S) from service S where S.name = ServiceName)
+    ));
+    insert into table(
+      select appointments
+      from Patient P
+      where P.taxcode = Ptaxcode
+    ) select ref(Ap) from Appointment Ap where Ap.ID = i + 1;
+    insert into table(
+      select appointments
+      from Doctor D
+      where D.taxcode = Dtaxcode
+    ) select ref(Ap) from Appointment Ap where Ap.ID = i + 1;
+end;
+/
+create or replace procedure INSERT_APPOINTMENT_ASSISTANT(ServiceName varchar, Ptaxcode varchar, Ataxcode varchar, book varchar) as
+  i number;
+  begin
+    select max(ID) into i from appointment;
+    insert into appointment values ( Appointment_TY(
+         i + 1,
+         TO_TIMESTAMP(book, 'DD-MM-YYYY'), 
+         CURRENT_TIMESTAMP,
+         (select dbms_random.string('A', 5) from dual), 
+         (select S.cost from service S where S.name = ServiceName),  
+         (SELECT * FROM (SELECT REF(Gr) FROM Groupt Gr ORDER BY DBMS_RANDOM.VALUE) WHERE rownum < 2) ,  
+         (select ref(S) from service S where S.name = ServiceName)
+    ));
+    insert into table(
+      select appointments
+      from Patient P
+      where P.taxcode = Ptaxcode
+    ) select ref(Ap) from Appointment Ap where Ap.ID = i + 1;
+    insert into table(
+      select appointments
+      from Assistant A
+      where A.taxcode = Ataxcode
+    ) select ref(Ap) from Appointment Ap where Ap.ID = i + 1;
+end;
+/
+select taxcode from patient; --AHCxkIuCEahRsTBF
+select taxcode from doctor; --EyqEFjSfCZpCepPT
+select taxcode from assistant; --qEHSsyiuwJxFNSVp
+select name from service;--DdaGWYhgIeuurqASpAFq
+--   (servicename. patient FC, doctorFC, DATE)
+exec INSERT_APPOINTMENT_DOCTOR('DdaGWYhgIeuurqASpAFq', 'AHCxkIuCEahRsTBF', 'EyqEFjSfCZpCepPT', '29-01-2021');
+exec INSERT_APPOINTMENT_ASSISTANT('DdaGWYhgIeuurqASpAFq', 'AHCxkIuCEahRsTBF', 'qEHSsyiuwJxFNSVp', '29-01-2021');
+select NVL(CARDINALITY(appointments), 0) from patient where taxcode ='AHCxkIuCEahRsTBF';
+
+
+--------------------------------------------------------------------------------------------
+-- 2) Op2: View information related to a patient, including the analysis results and previous visits (250 times a day)
+create or replace procedure PRINT_PATIENT (PatientFC in varchar2) as
+name varchar(30); surname varchar(30); age NUMBER;
+  service Service_TY;
+  appointment Appointment_TY;
+  appointments Appointment_NT;
+  begin
+    select P.surname, P.name, P.age, P.appointments into surname, name, age, appointments
+    from Patient P where P.taxcode = PatientFC;
+    dbms_output.put_line('Patient: '|| PatientFC);
+    dbms_output.put_line('Surname: ' || surname ||'  Name: '|| name ||'   Age: '|| age);
+    dbms_output.put_line('');
+    for appoint in (
+      select * from table(appointments)
+    ) loop
+      select deref(appoint.column_value) into appointment from dual;
+      dbms_output.put_line('Bookdate: '|| appointment.plannedatetime  || '  Outcome: '|| appointment.outcome);
+      select deref(appointment.service) into service from dual;
+      dbms_output.put_line('Service Name: '|| service.name || '    Type(Analysis/Visit): '|| service.VA || '    Description: '|| service.description );
+      dbms_output.put_line('-------------------------------');
+    end loop;
+end;
+/
+select p.appointments from Patient p where taxcode = 'AHCxkIuCEahRsTBF'; --select taxcode from patient;
+exec PRINT_PATIENT('AHCxkIuCEahRsTBF');
+
+--------------------------------------------------------------------------------------------
+--3) Op3: Print information on the services to be provided today (100 times a day)
+create or replace procedure PRINT_SERVICE as
+  service Service_TY;
+  begin 
+    for appoint in (
+      select * from appointment ap
+      where (
+        (extract(day from cast(ap.actualdatetime as date)) = extract(day from cast(current_timestamp as date))) and 
+        (extract(month from cast(ap.actualdatetime as date)) = extract(month from cast(current_timestamp as date))) and 
+        (extract(year from cast(ap.actualdatetime as date)) = extract(year from cast(current_timestamp as date))) ) 
+        )
+    loop
+      select deref(appoint.service) into service from dual;
+      dbms_output.put_line('Service Name: '|| service.name);
+      dbms_output.put_line( 'Visit/Analysis: '|| service.VA || '  Cost: ' || service.cost || '  Type: '|| service.servicetype || '  Description: '|| service.description);
+      dbms_output.put_line('-------------------------------');
+    end loop;
+end;
+/
+exec PRINT_SERVICE;
+
+-------------------------------------------------------------------------------------------------
+--4) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
+create or replace procedure PRINT_DOCTOR as
+  no_appointment integer;
+  begin
+    for doct in (
+      select * from Doctor
+    ) loop
+       dbms_output.put_line('Doctor: ' || ' FC:' || doct.taxcode ||'           Surname:' || doct.surname || '   Name:' || doct.name);
+       dbms_output.put_line('Age: ' || doct.age || '     Specialization: ' || doct.specialization );
+       select count(*) into no_appointment 
+       from table(doct.appointments);
+       dbms_output.put_line('--> # Services provided: ' || no_appointment);
+       dbms_output.put_line('------------------------------------------------------------------');
+    end loop;
+end;
+/
+
+--4) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
+create or replace procedure PRINT_ASSISTANT as
+  no_appointment integer;
+  begin
+    for assist in ( 
+      select * from Assistant
+     ) loop
+       dbms_output.put_line('Assistant: ' || ' FC:' || assist.taxcode || '        Surname:' || assist.surname || '  Name:' || assist.name);
+       dbms_output.put_line('Age: ' || assist.age || '    LevelSpec ' || assist.levelspec || ' Salary: ' || assist.salary );
+       select count(*) into no_appointment 
+       from table(assist.appointments);
+       dbms_output.put_line('--> # Services provided: ' || no_appointment);
+       dbms_output.put_line('--------------------------------------------------------------');
+    end loop;
+end;
+/
+exec PRINT_DOCTOR;
+exec PRINT_ASSISTANT;
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+-- 5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
+create or replace procedure PRINT_APPONTMENT_TODAY_DOCTOR(DoctorFC in varchar2) as
+  surname varchar(30);
+  service Service_TY;
+  appointment Appointment_TY;
+  appointments Appointment_NT;
+  begin
+    select D.surname, D.appointments into surname, appointments
+    from Doctor D where D.taxcode = DoctorFC;
+    dbms_output.put_line('Appointments of doctor : '|| DoctorFC || '     Surname:' || surname);
+    for appoint in (
+      select * from table(appointments)
+    ) loop
+        select deref(appoint.column_value) into appointment from dual;
+        if (extract(day from cast(appointment.actualdatetime as date)) = extract(day from cast(current_timestamp as date))) and 
+        (extract(month from cast(appointment.actualdatetime as date)) = extract(month from cast(current_timestamp as date))) and 
+        (extract(year from cast(appointment.actualdatetime as date)) = extract(year from cast(current_timestamp as date))) 
+        then 
+          dbms_output.put_line('  Day Appointment: '|| appointment.actualdatetime);
+          select deref(appointment.service) into service from dual;
+          dbms_output.put_line('Service -->   Name: ' || service.name || '    Visit/Analysis:  '|| service.VA || '  Type '|| service.servicetype);
+          dbms_output.put_line('');
+        end if;
+    end loop;
+end;
+/
+
+create or replace procedure PRINT_APPONTMENT_TODAY_ASS(AssistantFC in varchar2) as
+  surname varchar(30);
+  service Service_TY;
+  appointment Appointment_TY;
+  appointments Appointment_NT;
+  begin
+    select A.surname, A.appointments into surname, appointments
+    from Assistant A where A.taxcode = AssistantFC;
+    dbms_output.put_line('Appointments of assistant : '|| AssistantFC || '       Surname:' || surname);
+    for appoint in (
+      select * from table(appointments)
+    ) loop
+        select deref(appoint.column_value) into appointment from dual;
+        if (extract(day from cast(appointment.actualdatetime as date)) = extract(day from cast(current_timestamp as date))) and 
+        (extract(month from cast(appointment.actualdatetime as date)) = extract(month from cast(current_timestamp as date))) and 
+        (extract(year from cast(appointment.actualdatetime as date)) = extract(year from cast(current_timestamp as date))) 
+        then 
+          dbms_output.put_line('  Day Appointment: '|| appointment.actualdatetime);
+          select deref(appointment.service) into service from dual;
+          dbms_output.put_line('Service -->  Name: ' || service.name || '     Visit/Analysis:  '|| service.VA || '  Type '|| service.servicetype);
+          dbms_output.put_line('');
+        end if;
+    end loop;
+end;
+/
+exec PRINT_APPONTMENT_TODAY_DOCTOR('EyqEFjSfCZpCepPT');
+exec PRINT_APPONTMENT_TODAY_ASS('qEHSsyiuwJxFNSVp');
+
+
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------TRIGGER---------------------------------------------------------------------------
@@ -596,9 +657,9 @@ create or replace trigger INSERT_GROUP
 end;
 /
 -----------------------------EXECUTION OF TRIGGER----------------------------------------------------
-insert into appointment values(21344, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 's', 324, null, (SELECT * FROM (SELECT REF(Se) FROM Service Se ORDER BY dbms_random.value) WHERE rownum < 2));
+insert into appointment values(51356, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 's', 324, null, (SELECT * FROM (SELECT REF(Se) FROM Service Se ORDER BY dbms_random.value) WHERE rownum < 2));
 select count(*) from groupT;
-select deref(groupapp) from appointment where id='21344';
+--select deref(groupapp) from appointment where id='53534';
 ----------------------------------------------------------------------------------------------------------------
 
 --3) if the actual date updated goes under the planned date we return an error:
@@ -613,48 +674,58 @@ begin
 end;
 /
 ------------------------------EXECUTION OF TRIGGER----------------------------------------------------
-update appointment set actualdatetime = TIMESTAMP '1995-10-12 21:22:23' where ID='122'
+update appointment set actualdatetime = TIMESTAMP '1995-10-12 21:22:23' where ID='122';
+
+
+
+
+
+
+
+
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
---------------------------------------------------------------------------EXECUTION------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------OPERATION FOR SEVLET------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-set serveroutput on
-
-exec INSERT_APPOINTMENT(6, 204, 34, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-exec PRINT_PATIENT(1);
-exec PRINT_SERVICE;
-exec PRINT_DOCTOR;
-exec PRINT_ASSISTANT;
-exec PRINT_APPONTMENT_TODAY_DOCTOR(5);
-exec PRINT_APPONTMENT_TODAY_ASS(5);
-
-
-
-
-
-
 --------------------------------------------------------------------------------------------------------------------------------------------------
+--OPERATION 1:
+--1) Enter data for a new service (300 times a day)
 
---select * from doctor where weeklyavt = 1;
+insert into appointment values (
+    Appointment_TY(
+         (select max(ID) from appointment) + 1,
+         TO_TIMESTAMP('10-12-2012', 'DD-MM-YYYY'), 
+         TO_TIMESTAMP('10-12-2012', 'DD-MM-YYYY'), 
+         (select dbms_random.string('A', 5) from dual), 
+         (select S.cost from service S where S.name = 'XxPwrbffZHwHpFTHaCwD'),  
+         (SELECT * FROM (SELECT REF(Gr) FROM Groupt Gr ORDER BY dbms_random.value) WHERE rownum < 2) ,  
+         (select ref(S) from service S where S.name = 'XxPwrbffZHwHpFTHaCwD')
+));
 
 --OPERATION 2:
 --2) View information related to a patient, including the analysis results and previous visits (250 times a day)
-select deref(value(app)).ID as ID, 
-    deref(value(app)).actualdatetime as actualdate, 
+select deref(value(app)).actualdatetime as actualdate, 
     deref(value(app)).plannedatetime as plannedatetime, 
     deref(value(app)).price as price,
     deref(value(app)).outcome as outcome
     from (table(
-        select appointments from Patient where taxcode = 'hlBexdfTbQIFECAZ')
+        select appointments from Patient where taxcode = 'JomtuWOpzsiWmEIm')
      ) app;
 
+--select taxcode from patient;
+select p.appointments from Patient p where taxcode = 'JomtuWOpzsiWmEIm';
+
+--ADDING INDEX
 create index txc on Patient(taxcode);
 drop index txc;
+
+
 ------------------------------------------------------------------------------------------------------------------
 --OPERATION 3:
 --3) Op3: Print information on the services to be provided today (100 times a day)
-select * from appointment app 
+select plannedatetime, actualdatetime, deref(app.service).name, price, deref(app.groupapp).ID, outcome 
+from appointment app 
     where extract(day from cast(app.actualdatetime as date)) = extract(day from cast(current_timestamp as date)) and
     extract(month from cast(app.actualdatetime as date)) = extract(month from cast(current_timestamp as date)) and
     extract(year from cast(app.actualdatetime as date)) = extract(year from cast(current_timestamp as date));
@@ -665,36 +736,44 @@ drop index timest;
 ---------------------------------------------------------------------------------------------------------------------
 --OPERATION 4:
 --) Op4: Print information on individual employees and the number of services they worked on (10 times a day)
-SELECT ID, taxcode, name, surname, age, telephone_no, specialization, NVL(CARDINALITY(d.appointments), 0) as n_appointments 
+SELECT taxcode, name, surname, age, telephone_no, specialization, NVL(CARDINALITY(d.appointments), 0) as n_appointments 
 FROM doctor d;
-
-SELECT ID, taxcode, name, surname, age, telephone_no,levelspec, salary, NVL(CARDINALITY(d.appointments), 0) as n_appointments 
+SELECT taxcode, name, surname, age, telephone_no,levelspec, salary, NVL(CARDINALITY(d.appointments), 0) as n_appointments 
 FROM assistant d;
 --------------------------------------------------------------------------------------------------------------------
 
 
 --5) Op5: Print the schedule of the activities of a single employee for today (200 times a day)
-select deref(value(app)).ID as ID, 
-     deref(value(app)).actualdatetime as actualdate, 
+select deref(value(app)).actualdatetime as actualdate, 
      deref(value(app)).plannedatetime as bookdate,
      deref(value(app)).price as price,
      deref(value(app)).outcome as outcome
      from (table(
-        select appointments from Doctor where taxcode='krEaQuhseYmKBQsM')
-        ) app
-     where extract(day from cast((deref(value(app))).actualdatetime as date)) = extract(day from cast(CURRENT_TIMESTAMP as date));
+        select appointments from Doctor where taxcode='bimbjUobzUJNcGlD')
+        ) app 
+     where  (extract(day from cast((deref(value(app))).actualdatetime as date)) = extract(day from cast(CURRENT_TIMESTAMP as date)) and
+            extract(month from cast((deref(value(app))).actualdatetime as date)) = extract(month from cast(CURRENT_TIMESTAMP as date)) and
+            extract(year from cast((deref(value(app))).actualdatetime as date)) = extract(year from cast(CURRENT_TIMESTAMP as date)));
 
-select deref(value(app)).ID as ID, 
-     deref(value(app)).actualdatetime as actualdate, deref(value(app)).plannedatetime as bookdate,
+
+select deref(value(app)).actualdatetime as actualdate, 
+     deref(value(app)).plannedatetime as bookdate,
      deref(value(app)).price as price,
      deref(value(app)).outcome as outcome
      from (table(
-        select appointments from Assistant where taxcode='BdpTqJJslzEYRlDa')
-        ) app
-     where extract(day from cast((deref(value(app))).actualdatetime as date)) = extract(day from cast(CURRENT_TIMESTAMP as date));
+        select appointments from Assistant where taxcode='BCKtOOxWBqCrDNKV')
+        ) app 
+    where   (extract(day from cast((deref(value(app))).actualdatetime as date)) = extract(day from cast(CURRENT_TIMESTAMP as date)) and
+            extract(month from cast((deref(value(app))).actualdatetime as date)) = extract(month from cast(CURRENT_TIMESTAMP as date)) and
+            extract(year from cast((deref(value(app))).actualdatetime as date)) = extract(year from cast(CURRENT_TIMESTAMP as date)));
 ----------------------------------------------------------------------------------------------------------------------------------------
 
+select taxcode from Doctor;
 
-
+--ADDING INDEX
+create index doctI on Doctor(taxcode);
+create index AssI on Assistant(taxcode);
+drop index doctI;
+drop index AssI;
 
 
